@@ -4,14 +4,25 @@
 // throttled.
 var ACCESS_TOKEN = null;
 
-// Add an entry to this mapping for each label you want to see added to your
-// Gmail messages.
+// Add an entry to this custom mapping for each label you want to see added to
+// your Gmail messages.
 // Key: github label.
 // Value: Gmail label.
-var LABEL_MAPPING = {
-  'P0': 'p0',
-  'P1': 'p1'
+// Labels not in this list will automatically be mapped to project/label
+// in Gmail
+var CUSTOM_MAPPING = {
+  // 'P0': 'p0',
+  // 'P1': 'p1',
 };
+
+// Returns a Gmail label if one already exists, otherwise creates a new one.
+function getOrCreateLabel(labelName) {
+  var label = GmailApp.getUserLabelByName(labelName);
+  if (!label) {
+    label = GmailApp.createLabel(labelName);
+  }
+  return label;
+}
 
 // Add a time-driven trigger to run this function as often as you'd like your
 // mails to be auto-labeled. Documentation on time-based triggers:
@@ -74,13 +85,15 @@ function updateNewGithubNotificationThreadLabels() {
       var issueInfo = JSON.parse(response.getContentText());
       var labels = issueInfo['labels'];
       for (var j = 0; j < labels.length; j++) {
-        var gmailLabelName = LABEL_MAPPING[labels[j]['name']];
-        if (!gmailLabelName) {
-          continue;
-        }
-        var gmailLabel = GmailApp.getUserLabelByName(gmailLabelName);
-        if (!gmailLabel) {
-          gmailLabel = GmailApp.createLabel(gmailLabelName);
+        // If a custom label is specified, use it.
+        var gmailLabelName = CUSTOM_MAPPING[labels[j]['name']];
+        if (gmailLabelName) {
+          var gmailLabel = getOrCreateLabel(gmailLabelName);
+        } else {
+          // Create or retrieve a project label, and nest the GitHub labels underneath
+          // it to avoid polluting the Gmail labels.
+          var projLabel = getOrCreateLabel(project);
+          var gmailLabel = getOrCreateLabel(project + '/' + labels[j]['name']);
         }
         thread.addLabel(gmailLabel);
       }
