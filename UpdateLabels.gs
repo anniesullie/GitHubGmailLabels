@@ -88,9 +88,9 @@ function updateNewGithubNotificationThreadLabels() {
       for (var j = 0; j < labels.length; j++) {
         var labelName = CUSTOM_MAPPING[labels[j]['name']] ?
                         CUSTOM_MAPPING[labels[j]['name']] : labels[j]['name'];
-        if (!labelName && strict_mode)
-          continue;
-        else {
+        if (!labelName) {
+          if (strict_mode)
+            continue;
           var projectName = CUSTOM_MAPPING[project] ?
                             CUSTOM_MAPPING[project] : project;
           getOrCreateLabel(projectName);
