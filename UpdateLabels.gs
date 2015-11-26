@@ -4,14 +4,39 @@
 // throttled.
 var ACCESS_TOKEN = null;
 
-// Add an entry to this mapping for each label you want to see added to your
-// Gmail messages.
+// Add an entry to this custom mapping for each label you want to see added to
+// your Gmail messages.
 // Key: github label.
 // Value: Gmail label.
-var LABEL_MAPPING = {
-  'P0': 'p0',
-  'P1': 'p1'
+// Labels not in this list will automatically be mapped to project/label
+// in Gmail
+// Custom mapping can also include project names. Gmail will not nest the
+// labels under the projects automatically, but if you create a label with
+// the project name in Gmail, all labels containig the project name will
+// be nested underneath it.
+var CUSTOM_MAPPING = {
+  // 'Project-A/myproject' : 'My Project',
+  // 'Project-A/myproject/Label A' : 'My Project/Label A',
+  // 'Project-A/myproject/Label B' : 'labelB',
+  // 'Project-A/myproject/Label C' : 'My Project/labelC',
 };
+
+var MARK_IMPORTANT = [
+  // 'labelB',
+  // 'My Project/labelC',
+];
+
+// Set this to true to ignore any labels not mentioned in the custom labels.
+var strict_mode = false;
+
+// Returns a Gmail label if one already exists, otherwise creates a new one.
+function getOrCreateLabel(labelName) {
+  var label = GmailApp.getUserLabelByName(labelName);
+  if (!label) {
+    label = GmailApp.createLabel(labelName);
+  }
+  return label;
+}
 
 // Add a time-driven trigger to run this function as often as you'd like your
 // mails to be auto-labeled. Documentation on time-based triggers:
@@ -74,15 +99,21 @@ function updateNewGithubNotificationThreadLabels() {
       var issueInfo = JSON.parse(response.getContentText());
       var labels = issueInfo['labels'];
       for (var j = 0; j < labels.length; j++) {
-        var gmailLabelName = LABEL_MAPPING[labels[j]['name']];
-        if (!gmailLabelName) {
-          continue;
+        var labelName = labels[j]['name'];
+        // Check if there is a custom mapping for the qualified label name
+        var qualifiedLabelName = CUSTOM_MAPPING[project + '/' + labelName];
+        // If there was no custome mapping, if strict_mode get the next label
+        if (!qualifiedLabelName) {
+          if (strict_mode)
+            continue;
+          // Check if there is a custom mapping for the project name
+          var projectName = CUSTOM_MAPPING[project] ?
+                            CUSTOM_MAPPING[project] : project;
+          qualifiedLabelName = projectName + '/' + labelName;
         }
-        var gmailLabel = GmailApp.getUserLabelByName(gmailLabelName);
-        if (!gmailLabel) {
-          gmailLabel = GmailApp.createLabel(gmailLabelName);
-        }
-        thread.addLabel(gmailLabel);
+        thread.addLabel(getOrCreateLabel(qualifiedLabelName));
+        if (MARK_IMPORTANT.indexOf(qualifiedLabelName) > -1)
+          GmailApp.markThreadImportant(thread);
       }
     }
   }
