@@ -10,10 +10,15 @@ var ACCESS_TOKEN = null;
 // Value: Gmail label.
 // Labels not in this list will automatically be mapped to project/label
 // in Gmail
+// Custom mapping can also include project names.
 var CUSTOM_MAPPING = {
   // 'P0': 'p0',
   // 'P1': 'p1',
+  // 'Project-A/myproject' : 'My Project',
 };
+
+// Set this to true to ignore any labels not mentioned in the custom labels.
+var strict_mode = false;
 
 // Returns a Gmail label if one already exists, otherwise creates a new one.
 function getOrCreateLabel(labelName) {
@@ -77,25 +82,21 @@ function updateNewGithubNotificationThreadLabels() {
       // here:
       // https://developer.github.com/v3/issues/#get-a-single-issue
       // And it could potentially take more actions on the thread in Gmail, like
-      // archiving or changing read/important state. The full API for the thread
-      // is documented here:
-      // https://developers.google.com/apps-script/reference/gmail/gmail-thread
-      // and there is also an API for individual messages documented here:
-      // https://developers.google.com/apps-script/reference/gmail/gmail-message
+      // archiving or changing read/important state.
       var issueInfo = JSON.parse(response.getContentText());
       var labels = issueInfo['labels'];
       for (var j = 0; j < labels.length; j++) {
-        // If a custom label is specified, use it.
-        var gmailLabelName = CUSTOM_MAPPING[labels[j]['name']];
-        if (gmailLabelName) {
-          var gmailLabel = getOrCreateLabel(gmailLabelName);
-        } else {
-          // Create or retrieve a project label, and nest the GitHub labels underneath
-          // it to avoid polluting the Gmail labels.
-          var projLabel = getOrCreateLabel(project);
-          var gmailLabel = getOrCreateLabel(project + '/' + labels[j]['name']);
+        var labelName = CUSTOM_MAPPING[labels[j]['name']] ?
+                        CUSTOM_MAPPING[labels[j]['name']] : labels[j]['name'];
+        if (!labelName && strict_mode)
+          continue;
+        else {
+          var projectName = CUSTOM_MAPPING[project] ?
+                            CUSTOM_MAPPING[project] : project;
+          getOrCreateLabel(projectName);
+          labelName = projectName + '/' + labelName;
         }
-        thread.addLabel(gmailLabel);
+        thread.addLabel(getOrCreateLabel(labelName));
       }
     }
   }
