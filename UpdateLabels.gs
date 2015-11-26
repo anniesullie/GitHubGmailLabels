@@ -10,12 +10,21 @@ var ACCESS_TOKEN = null;
 // Value: Gmail label.
 // Labels not in this list will automatically be mapped to project/label
 // in Gmail
-// Custom mapping can also include project names.
+// Custom mapping can also include project names. Gmail will not nest the
+// labels under the projects automatically, but if you create a label with
+// the project name in Gmail, all labels containig the project name will
+// be nested underneath it.
 var CUSTOM_MAPPING = {
-  // 'P0': 'p0',
-  // 'P1': 'p1',
   // 'Project-A/myproject' : 'My Project',
+  // 'Project-A/myproject/Label A' : 'My Project/Label A',
+  // 'Project-A/myproject/Label B' : 'labelB',
+  // 'Project-A/myproject/Label C' : 'My Project/labelC',
 };
+
+var MARK_IMPORTANT = [
+  // 'labelB',
+  // 'My Project/labelC',
+];
 
 // Set this to true to ignore any labels not mentioned in the custom labels.
 var strict_mode = false;
@@ -37,9 +46,10 @@ function updateNewGithubNotificationThreadLabels() {
   // since it last ran. So we do a search for GitHub notification mails from the
   // last day, and store a property with info about the ones that haven't
   // changed.
-  var threads = GmailApp.search('from:notifications@github.com newer_than:1d');
-  var seenThreads = JSON.parse(
-      PropertiesService.getUserProperties().getProperty('seenThreads') || '{}');
+  var threads = GmailApp.search('from:notifications@github.com newer_than:60d');
+  //var seenThreads = JSON.parse(
+  //    PropertiesService.getUserProperties().getProperty('seenThreads') || '{}');
+  var seenThreads = {};
   for (var i = 0; i < threads.length; i++) {
     // Check if this thread has been processed before and update the cache.
     var threadId = threads[i].getId();
@@ -86,17 +96,21 @@ function updateNewGithubNotificationThreadLabels() {
       var issueInfo = JSON.parse(response.getContentText());
       var labels = issueInfo['labels'];
       for (var j = 0; j < labels.length; j++) {
-        var labelName = CUSTOM_MAPPING[labels[j]['name']] ?
-                        CUSTOM_MAPPING[labels[j]['name']] : labels[j]['name'];
-        if (!labelName) {
+        var labelName = labels[j]['name'];
+        // Check if there is a custom mapping for the qualified label name
+        var qualifiedLabelName = CUSTOM_MAPPING[project + '/' + labelName];
+        // If there was no custome mapping, if strict_mode get the next label
+        if (!qualifiedLabelName) {
           if (strict_mode)
             continue;
+          // Check if there is a custom mapping for the project name
           var projectName = CUSTOM_MAPPING[project] ?
                             CUSTOM_MAPPING[project] : project;
-          getOrCreateLabel(projectName);
-          labelName = projectName + '/' + labelName;
+          qualifiedLabelName = projectName + '/' + labelName;
         }
-        thread.addLabel(getOrCreateLabel(labelName));
+        thread.addLabel(getOrCreateLabel(qualifiedLabelName));
+        if (MARK_IMPORTANT.indexOf(qualifiedLabelName) > -1)
+          GmailApp.markThreadImportant(thread);
       }
     }
   }
