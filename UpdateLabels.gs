@@ -92,9 +92,9 @@ function updateNewGithubNotificationThreadLabels() {
       // https://developer.github.com/v3/issues/#get-a-single-issue
       // And it could potentially take more actions on the thread in Gmail, like
       // archiving or changing read/important state. The full API for the thread
--     // is documented here:
--     // https://developers.google.com/apps-script/reference/gmail/gmail-thread
--     // and there is also an API for individual messages documented here:
+      // is documented here:
+      // https://developers.google.com/apps-script/reference/gmail/gmail-thread
+      // and there is also an API for individual messages documented here:
       // https://developers.google.com/apps-script/reference/gmail/gmail-message
       var issueInfo = JSON.parse(response.getContentText());
       var labels = issueInfo['labels'];
