@@ -49,7 +49,6 @@ function updateNewGithubNotificationThreadLabels() {
   var threads = GmailApp.search('from:notifications@github.com newer_than:1d');
   var seenThreads = JSON.parse(
       PropertiesService.getUserProperties().getProperty('seenThreads') || '{}');
-  var seenThreads = {};
   for (var i = 0; i < threads.length; i++) {
     // Check if this thread has been processed before and update the cache.
     var threadId = threads[i].getId();
