@@ -46,9 +46,9 @@ function updateNewGithubNotificationThreadLabels() {
   // since it last ran. So we do a search for GitHub notification mails from the
   // last day, and store a property with info about the ones that haven't
   // changed.
-  var threads = GmailApp.search('from:notifications@github.com newer_than:60d');
-  //var seenThreads = JSON.parse(
-  //    PropertiesService.getUserProperties().getProperty('seenThreads') || '{}');
+  var threads = GmailApp.search('from:notifications@github.com newer_than:1d');
+  var seenThreads = JSON.parse(
+      PropertiesService.getUserProperties().getProperty('seenThreads') || '{}');
   var seenThreads = {};
   for (var i = 0; i < threads.length; i++) {
     // Check if this thread has been processed before and update the cache.
