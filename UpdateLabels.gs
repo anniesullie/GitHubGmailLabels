@@ -59,20 +59,20 @@ function updateNewGithubNotificationThreadLabels() {
     }
     seenThreads[threadId] = threadTime;
     var thread = threads[i];
-    
+
     // Parse the thread subject to get the GitHub issue id.
     var subject = thread.getFirstMessageSubject();
     var match = subject.match(/.*\(#([\d]+)\)/);
     if (match) {
       // This thread has an issue id, so it must be about a bug.
       var issueId = match[1];
-      
+
       // Parse the to: field of the first message to get the GitHub project/repo.
       // Unfortunately there is no API for getting a single message so need to
       // pull all of them.
       var messages = thread.getMessages();
-      var project = messages[0].getTo().match(/(.*) \</)[1];
-      
+      var project = messages[0].getTo().match(/\"(.*)\" \</)[1];
+
       // From the issue id and project, create a GitHub API request for more
       // info about the issue. If an access token exists, include it in the
       // request for higher usage quota.
@@ -84,7 +84,7 @@ function updateNewGithubNotificationThreadLabels() {
         params['headers'] = {'Authorization': 'token ' + ACCESS_TOKEN}
       }
       var response = UrlFetchApp.fetch(url, params);
-      
+
       // Parse the issue info. Currently, this script just parses the issue
       // label and updates Gmail labels accordingly. But it could potentially
       // parse anything available throug the GitHub API, which is documented
